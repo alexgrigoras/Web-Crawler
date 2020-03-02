@@ -5,6 +5,12 @@ from bs4 import BeautifulSoup
 import os
 import time
 import json
+import pickle
+from signal import signal, SIGINT
+from sys import exit
+
+
+urls_map = dict()
 
 
 class Crawler:
@@ -17,20 +23,36 @@ class Crawler:
 
     def crawl(self):
         print("Crawling:")
+
+        try:
+            file_name = self.folder_name + "/visited_urls.txt"
+            with open(file_name, 'rb') as fp:
+                items = pickle.load(fp)
+                global urls_map
+                urls_map = items
+
+            print(urls_map)
+
+        except FileNotFoundError:
+            urls_map = dict()
+
         index = 0
         while len(self.urls) != 0 and index < self.limit:
             url = self.urls.pop(0)
             self.__crawl_url(url)
             index += 1
 
-        self.create_directory("output")
-
-        file_name = 'output/links.txt'
-        with open(file_name, 'w+', encoding='utf-8') as outfile:
-            json.dump(self.links_dict, outfile, ensure_ascii=False, indent=4)
+        # add urls to external file
+        file_name = self.folder_name + "/visited_urls.txt"
+        with open(file_name, 'wb') as fp:
+            pickle.dump(urls_map, fp)
 
     def __crawl_url(self, url):
         print(" - " + url)
+
+        hash_value = hash(url)
+        urls_map[hash_value] = url
+
         try:
             req = urllib.request.Request(
                 url,
@@ -41,6 +63,9 @@ class Crawler:
             page = urllib.request.urlopen(req)
         except urllib.error.HTTPError:
             print(" - HTTP Error")
+            return
+        except urllib.error.URLError:
+            print(" - SSL Certificate Error")
             return
 
         soup = BeautifulSoup(page, 'html.parser')
@@ -87,14 +112,52 @@ class Crawler:
             else:
                 parsed_url = raw_url
 
-            if parsed_url not in self.urls:
+            # verify if link is not already parsed
+            if hash(parsed_url) not in urls_map:
                 links_list.append(parsed_url)
                 self.urls.append(parsed_url)
+            else:
+                print(" - link already parsed")
 
         self.links_dict[url] = links_list
 
-        # for i in urls:
-        # print(i)
+    def map(self):
+        print("Generate Map")
+
+        self.create_directory("output")
+
+        file_name = 'output/map.txt'
+        with open(file_name, 'w+', encoding='utf-8') as outfile:
+            json.dump(self.links_dict, outfile, ensure_ascii=False, indent=4)
+
+    @staticmethod
+    def reduce():
+        print("Generate Reduce")
+
+        file_name = 'output/map.txt'
+        with open(file_name, 'r', encoding='utf-8') as infile:
+            json_data = json.load(infile)
+
+        json_urls = []
+        keys = dict()
+
+        for data in json_data:
+            json_urls.append(data)
+
+        for url in json_urls:
+            for link in json_data[url]:
+                if link not in keys:
+                    temp_list = [url]
+                    keys[link] = temp_list
+                else:
+                    temp_list = keys[link]
+                    if url not in temp_list:
+                        temp_list.append(url)
+                        keys[link] = temp_list
+
+        file_name = 'output/reduce.txt'
+        with open(file_name, 'w+', encoding='utf-8') as outfile:
+            json.dump(keys, outfile, ensure_ascii=False, indent=4)
 
     def robot_parse_read(self, link):
         self.rp.set_url(link + "/robots.txt")
@@ -104,8 +167,11 @@ class Crawler:
         return self.rp.can_fetch("*", url)
 
     def robot_parse_delay(self):
-        delay_time = self.rp.crawl_delay("*")
-        time.sleep(float(delay_time))
+        try:
+            delay_time = self.rp.crawl_delay("*")
+            time.sleep(float(delay_time))
+        except AttributeError:
+            time.sleep(1)
 
     @staticmethod
     def create_directory(path):
@@ -133,13 +199,28 @@ class Crawler:
         return path_only, resource
 
 
+def handler(signal_received, frame):
+    # Handle any cleanup here
+    print('SIGINT or CTRL-C detected. Storing data and exiting!')
+
+    # add urls to external file
+    file_name = "files/visited_urls.txt"
+    with open(file_name, 'wb') as fp:
+        pickle.dump(urls_map, fp)
+
+    exit(0)
+
+
 def main():
     urls = ["https://dmoztools.net/", "https://dmoz-odp.org/"]
-    limit = 6
+    limit = 5
 
     c = Crawler(urls, limit)
-    c.crawl()
+    #c.crawl()
+    #c.map()
+    c.reduce()
 
 
 if __name__ == "__main__":
+    signal(SIGINT, handler)
     main()
