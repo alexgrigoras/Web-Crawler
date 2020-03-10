@@ -22,7 +22,7 @@ class Crawler:
         print("> Crawling:")
 
         try:
-            file_name = self.folder_name + "/visited_urls.txt"
+            file_name = self.folder_name + "/visited_urls"
             with open(file_name, 'rb') as fp:
                 items = pickle.load(fp)
                 self.urls_map = items
@@ -37,7 +37,7 @@ class Crawler:
             index += 1
 
         # add urls to external file
-        file_name = self.folder_name + "/visited_urls.txt"
+        file_name = self.folder_name + "/visited_urls"
         with open(file_name, 'wb') as fp:
             pickle.dump(self.urls_map, fp)
 
@@ -74,18 +74,18 @@ class Crawler:
         domain = o.netloc
         path = o.path
 
-        self.rp.robot_parse_read(scheme + "://" + domain)
+        self.rp.read(scheme + "://" + domain)
 
-        if not self.rp.robot_parse_url(url):
+        if not self.rp.validate_url(url):
             print("\t- Cannot parse")
             return
 
-        self.rp.robot_parse_delay()
+        self.rp.crawl_delay()
 
-        path_only, resource = self.generate_sections_of_url(path)
+        path_only, resource = self.__generate_sections_of_url(path)
 
         link = self.folder_name + "/" + domain + "/" + path_only
-        self.create_directory(link)
+        self.__create_directory(link)
 
         if not resource:
             resource = "index.html"
@@ -118,19 +118,19 @@ class Crawler:
     def generate_adjacency_list(self):
         print("> Generate Adjacency list")
 
-        self.create_directory("output")
+        self.__create_directory("output")
 
         file_name = 'output/adjacency_list.json'
         with open(file_name, 'w+', encoding='utf-8') as outfile:
             json.dump(self.links_dict, outfile, ensure_ascii=False, indent=4)
 
     @staticmethod
-    def create_directory(path):
+    def __create_directory(path):
         if not os.path.exists(path):
             os.makedirs(path)
 
     @staticmethod
-    def generate_sections_of_url(path):
+    def __generate_sections_of_url(path):
         sections = []
         temp = ""
         while path != '/':
