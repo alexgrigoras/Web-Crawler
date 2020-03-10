@@ -3,34 +3,23 @@ import json
 
 class MapReduce:
     def __init__(self, id):
-        self.worker_id = id
+        self.id = id
+        self.key_values = dict()
 
-    def map(self):
-        print("[" + self.worker_id + "] > Running mapper")
-        file_name = 'output/adjacency_list.json'
-        with open(file_name, 'r', encoding='utf-8') as infile:
-            json_data = json.load(infile)
-
-        json_urls = []
-        keys = dict()
-
-        for data in json_data:
-            json_urls.append(data)
-
-        for url in json_urls:
-            for link in json_data[url]:
-                if link not in keys:
-                    temp_list = [url]
-                    keys[link] = temp_list
-                else:
-                    temp_list = keys.get(link)
-                    if url not in temp_list:
-                        temp_list.append(url)
-                        keys[link] = temp_list
-
-        file_name = "output/map-" + id + ".json"
-        with open(file_name, 'w+', encoding='utf-8') as outfile:
-            json.dump(keys, outfile, ensure_ascii=False, indent=4)
+    def map(self, key, value):
+        if value not in self.key_values:
+            temp_list = [key]
+            self.key_values[value] = temp_list
+        else:
+            temp_list = self.key_values.get(value)
+            if key not in temp_list:
+                temp_list.append(key)
+                self.key_values[value] = temp_list
 
     def reduce(self):
-        print("[" + self.worker_id + "] > Running reducer")
+        print("[" + str(self.id) + "] > Running reducer")
+
+    def store_values(self):
+        file_name = "output/map-" + str(id) + ".json"
+        with open(file_name, 'w+', encoding='utf-8') as outfile:
+            json.dump(self.key_values, outfile, ensure_ascii=False, indent=4)
