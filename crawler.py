@@ -1,40 +1,34 @@
-import urllib.request
-import urllib.parse
-import urllib.robotparser
-from bs4 import BeautifulSoup
-import os
-import time
 import json
+import os
 import pickle
-from signal import signal, SIGINT
-from sys import exit
+import urllib.parse
+import urllib.request
 
+from bs4 import BeautifulSoup
 
-urls_map = dict()
+from robot_parser import RobotParser
 
 
 class Crawler:
     def __init__(self, urls, limit):
         self.urls = urls
         self.folder_name = "files"
-        self.rp = urllib.robotparser.RobotFileParser()
+        self.rp = RobotParser()
         self.links_dict = {}
         self.limit = limit
+        self.urls_map = dict()
 
     def crawl(self):
-        print("Crawling:")
+        print("> Crawling:")
 
         try:
             file_name = self.folder_name + "/visited_urls.txt"
             with open(file_name, 'rb') as fp:
                 items = pickle.load(fp)
-                global urls_map
-                urls_map = items
-
-            print(urls_map)
+                self.urls_map = items
 
         except FileNotFoundError:
-            urls_map = dict()
+            self.urls_map = dict()
 
         index = 0
         while len(self.urls) != 0 and index < self.limit:
@@ -45,13 +39,13 @@ class Crawler:
         # add urls to external file
         file_name = self.folder_name + "/visited_urls.txt"
         with open(file_name, 'wb') as fp:
-            pickle.dump(urls_map, fp)
+            pickle.dump(self.urls_map, fp)
 
     def __crawl_url(self, url):
-        print(" - " + url)
+        print("\t- " + url)
 
         hash_value = hash(url)
-        urls_map[hash_value] = url
+        self.urls_map[hash_value] = url
 
         try:
             req = urllib.request.Request(
@@ -62,10 +56,10 @@ class Crawler:
             )
             page = urllib.request.urlopen(req)
         except urllib.error.HTTPError:
-            print(" - HTTP Error")
+            print("\t- HTTP Error")
             return
         except urllib.error.URLError:
-            print(" - SSL Certificate Error")
+            print("\t- SSL Certificate Error")
             return
 
         soup = BeautifulSoup(page, 'html.parser')
@@ -80,13 +74,13 @@ class Crawler:
         domain = o.netloc
         path = o.path
 
-        self.robot_parse_read(scheme + "://" + domain)
+        self.rp.robot_parse_read(scheme + "://" + domain)
 
-        if not self.robot_parse_url(url):
-            print(" - Cannot parse")
+        if not self.rp.robot_parse_url(url):
+            print("\t- Cannot parse")
             return
 
-        self.robot_parse_delay()
+        self.rp.robot_parse_delay()
 
         path_only, resource = self.generate_sections_of_url(path)
 
@@ -113,65 +107,22 @@ class Crawler:
                 parsed_url = raw_url
 
             # verify if link is not already parsed
-            if hash(parsed_url) not in urls_map:
+            if hash(parsed_url) not in self.urls_map:
                 links_list.append(parsed_url)
                 self.urls.append(parsed_url)
             else:
-                print(" - link already parsed")
+                print("\t- link already parsed")
 
         self.links_dict[url] = links_list
 
-    def map(self):
-        print("Generate Map")
+    def generate_adjacency_list(self):
+        print("> Generate Adjacency list")
 
         self.create_directory("output")
 
-        file_name = 'output/map.txt'
+        file_name = 'output/adjacency_list.json'
         with open(file_name, 'w+', encoding='utf-8') as outfile:
             json.dump(self.links_dict, outfile, ensure_ascii=False, indent=4)
-
-    @staticmethod
-    def reduce():
-        print("Generate Reduce")
-
-        file_name = 'output/map.txt'
-        with open(file_name, 'r', encoding='utf-8') as infile:
-            json_data = json.load(infile)
-
-        json_urls = []
-        keys = dict()
-
-        for data in json_data:
-            json_urls.append(data)
-
-        for url in json_urls:
-            for link in json_data[url]:
-                if link not in keys:
-                    temp_list = [url]
-                    keys[link] = temp_list
-                else:
-                    temp_list = keys[link]
-                    if url not in temp_list:
-                        temp_list.append(url)
-                        keys[link] = temp_list
-
-        file_name = 'output/reduce.txt'
-        with open(file_name, 'w+', encoding='utf-8') as outfile:
-            json.dump(keys, outfile, ensure_ascii=False, indent=4)
-
-    def robot_parse_read(self, link):
-        self.rp.set_url(link + "/robots.txt")
-        self.rp.read()
-
-    def robot_parse_url(self, url):
-        return self.rp.can_fetch("*", url)
-
-    def robot_parse_delay(self):
-        try:
-            delay_time = self.rp.crawl_delay("*")
-            time.sleep(float(delay_time))
-        except AttributeError:
-            time.sleep(1)
 
     @staticmethod
     def create_directory(path):
@@ -197,30 +148,3 @@ class Crawler:
                 path_only += temp + "/"
 
         return path_only, resource
-
-
-def handler(signal_received, frame):
-    # Handle any cleanup here
-    print('SIGINT or CTRL-C detected. Storing data and exiting!')
-
-    # add urls to external file
-    file_name = "files/visited_urls.txt"
-    with open(file_name, 'wb') as fp:
-        pickle.dump(urls_map, fp)
-
-    exit(0)
-
-
-def main():
-    urls = ["https://dmoztools.net/", "https://dmoz-odp.org/"]
-    limit = 5
-
-    c = Crawler(urls, limit)
-    #c.crawl()
-    #c.map()
-    c.reduce()
-
-
-if __name__ == "__main__":
-    signal(SIGINT, handler)
-    main()
