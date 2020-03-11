@@ -20,9 +20,8 @@ class MapReduce:
                 self.key_values[value] = temp_list
 
     def reduce(self, key, value):
-        file_name_raw = "output/reduce/" + key + ".txt"
-        file_name = file_name_raw.replace('/', '_')
-        file_name = file_name.replace('%', '')
+        name = key.replace('/', '_').replace('%', '')
+        file_name = "output/reduce/" + name + ".txt"
 
         if os.path.exists(file_name):
             append_write = 'a'  # append if already exists
@@ -30,7 +29,7 @@ class MapReduce:
             append_write = 'w'  # make a new file if not
 
         with open(file_name, append_write, encoding='utf-8') as outfile:
-            outfile.writelines(["%s\n" % item for item in value])
+            outfile.write("%s\n" % value)
 
     def store_values(self):
         file_name = "output/map/map-" + str(self.id) + ".json"
