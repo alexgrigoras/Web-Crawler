@@ -75,7 +75,6 @@ def main():
             temp_data = transmit_data(temp_data, nr_nodes, comm, map_phase)
 
         # reduction phase
-        """
         path = 'output/map/*.json'
         files = glob.glob(path)
         for file in files:
@@ -89,14 +88,14 @@ def main():
                 keys.append(data)
 
             for key in keys:
-                data = {"k":key, "v":json_data[key]}
-                data_queue.append(data)
+                for value in json_data[key]:
+                    data = {"k": key, "v": value}
+                    data_queue.append(data)
 
             # transmit data
             temp_data = transmit_data(data_queue, nr_nodes, comm, reduce_phase)
-            while temp_data:
-                temp_data = transmit_data(temp_data, nr_nodes, comm, reduce_phase)
-        """
+            #while temp_data:
+            #    temp_data = transmit_data(temp_data, nr_nodes, comm, reduce_phase)
 
         # stopping phase
         for dest_rank in range(1, nr_nodes):
