@@ -3,16 +3,17 @@ import os
 import pickle
 import urllib.parse
 import urllib.request
+from urllib import error
 
 from bs4 import BeautifulSoup
 
-from robot_parser import RobotParser
+from application.modules.robot_parser import RobotParser
 
 
 class Crawler:
     def __init__(self, urls, limit):
         self.urls = urls
-        self.folder_name = "files"
+        self.folder_name = "application/files"
         self.rp = RobotParser()
         self.links_dict = {}
         self.limit = limit
@@ -22,7 +23,7 @@ class Crawler:
         print("> Crawling:")
 
         try:
-            file_name = self.folder_name + "/visited_urls"
+            file_name = self.folder_name + "/visited_urls.pickle"
             with open(file_name, 'rb') as fp:
                 items = pickle.load(fp)
                 self.urls_map = items
@@ -37,7 +38,7 @@ class Crawler:
             index += 1
 
         # add urls to external file
-        file_name = self.folder_name + "/visited_urls"
+        file_name = self.folder_name + "/visited_urls.pickle"
         with open(file_name, 'wb') as fp:
             pickle.dump(self.urls_map, fp)
 
@@ -55,10 +56,10 @@ class Crawler:
                 }
             )
             page = urllib.request.urlopen(req)
-        except urllib.error.HTTPError:
+        except error.HTTPError:
             print("\t- HTTP Error")
             return
-        except urllib.error.URLError:
+        except error.URLError:
             print("\t- SSL Certificate Error")
             return
 
@@ -118,9 +119,9 @@ class Crawler:
     def generate_adjacency_list(self):
         print("> Generate Adjacency list")
 
-        self.__create_directory("output")
+        self.__create_directory("application/output")
 
-        file_name = 'output/adjacency_list.json'
+        file_name = 'application/output/adjacency_list.json'
         with open(file_name, 'w+', encoding='utf-8') as outfile:
             json.dump(self.links_dict, outfile, ensure_ascii=False, indent=4)
 

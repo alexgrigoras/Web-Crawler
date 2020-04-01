@@ -6,8 +6,8 @@ class MapReduce:
     def __init__(self, rank):
         self.id = rank
         self.key_values = dict()
-        self.__create_directory("output/map/")
-        self.__create_directory("output/reduce/")
+        self.__create_directory("application/output/map/")
+        self.__create_directory("application/output/reduce/")
 
     def map(self, key, value):
         if value not in self.key_values:
@@ -19,9 +19,10 @@ class MapReduce:
                 temp_list.append(key)
                 self.key_values[value] = temp_list
 
-    def reduce(self, key, value):
+    @staticmethod
+    def reduce(key, value):
         name = key.replace('/', '_').replace('%', '')
-        file_name = "output/reduce/" + name + ".txt"
+        file_name = "application/output/reduce/" + name + ".txt"
 
         if os.path.exists(file_name):
             append_write = 'a'  # append if already exists
@@ -32,7 +33,7 @@ class MapReduce:
             outfile.write("%s\n" % value)
 
     def store_values(self):
-        file_name = "output/map/map-" + str(self.id) + ".json"
+        file_name = "application/output/map/map-" + str(self.id) + ".json"
         with open(file_name, 'w+', encoding='utf-8') as outfile:
             json.dump(self.key_values, outfile, ensure_ascii=False, indent=4)
 

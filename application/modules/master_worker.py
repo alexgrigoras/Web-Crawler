@@ -54,7 +54,7 @@ def main():
     if rank == master:
 
         # mapping phase
-        file_name = 'output/adjacency_list.json'
+        file_name = 'application/output/adjacency_list.json'
         with open(file_name, 'r', encoding='utf-8') as infile:
             json_data = json.load(infile)
 
@@ -75,7 +75,7 @@ def main():
             temp_data = transmit_data(temp_data, nr_nodes, comm, map_phase)
 
         # reduction phase
-        path = 'output/map/*.json'
+        path = 'application/output/map/*.json'
         files = glob.glob(path)
         for file in files:
             with open(file, 'r', encoding='utf-8') as infile:
@@ -94,7 +94,7 @@ def main():
 
             # transmit data
             temp_data = transmit_data(data_queue, nr_nodes, comm, reduce_phase)
-            #while temp_data:
+            # while temp_data:
             #    temp_data = transmit_data(temp_data, nr_nodes, comm, reduce_phase)
 
         # stopping phase
