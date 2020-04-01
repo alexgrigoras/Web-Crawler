@@ -134,3 +134,5 @@ dmypy.json
 /.idea/WebCrawler.iml
 /.idea/vcs.xml
 /.idea/modules.xml
+/application/output/
+/application/files/
