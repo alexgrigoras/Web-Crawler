@@ -36,11 +36,15 @@ map-reduce-crawler
 ## Execution
 It is done in two phases:
 
-1. Cloning from the git: `git clone https://github.com/grigoras.alexandru/map-reduce-crawler.git`
-1. Selecting the application folder: `cd map-reduce-crawler/`
+1. Cloning from the git: `git clone https://github.com/grigoras.alexandru/web-crawler.git`
+1. Selecting the application folder: `cd web-crawler/`
 1. Creating virtual environment: `virtualenv ENVIRONMENT_NAME`
 1. Selecting virtual environment: `source ENVIRONMENT_NAME/bin/activate`
 1. Installing: `python setup.py install`
 1. Running:
     1. Crawler + MapReduce: `python -m application`
     1. <i>(Optional)</i> MapReduce: `mpiexec -np NUMBER_OF_PROCESSES python application/modules/master_worker.py`
+	
+
+## License
+The application is licensed under the MIT License.
